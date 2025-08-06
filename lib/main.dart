@@ -4,7 +4,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:flutter/services.dart';
-import 'package:firebase_core/firebase_core.dart'; // Added for Firebase initialization
+import 'package:firebase_core/firebase_core.dart';
+import 'package:sewamitra/homeScreen.dart'; // Added for Firebase initialization
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +30,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         '/role_selection': (context) => const RoleSelectionScreen(),
-        '/user_login': (context) => const LoginScreen(isProvider: false),
+        '/user_login': (context) => const LoginScreen( isProvider: false ),
         '/provider_login': (context) => const LoginScreen(isProvider: true),
         '/user_signup': (context) => const SignupScreen(isProvider: false),
         '/provider_signup': (context) => const SignupScreen(isProvider: true),
@@ -1065,120 +1066,417 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 }
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
 
-class _HomeScreenState extends State<HomeScreen> {
-  Map<String, dynamic>? _userData;
-  bool _isLoading = true;
-  String? _error;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserData();
-  }
 
-  Future<void> _fetchUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      setState(() {
-        _isLoading = false;
-        _error = 'User not authenticated';
-      });
-      return;
-    }
 
-    try {
-      final database = FirebaseDatabase.instance.ref();
-      final snapshot = await database.child('users').child(user.uid).get();
 
-      if (snapshot.exists) {
-        setState(() {
-          _userData = Map<String, dynamic>.from(snapshot.value as Map);
-          _isLoading = false;
-        });
-      } else {
-        final providerSnapshot = await database.child('providers').child(user.uid).get();
-        if (providerSnapshot.exists) {
-          setState(() {
-            _userData = Map<String, dynamic>.from(providerSnapshot.value as Map);
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _isLoading = false;
-            _error = 'User data not found';
-          });
-        }
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _error = 'Error fetching user data';
-      });
-    }
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.pushReplacementNamed(context, '/role_selection');
-            },
-          )
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Center(child: Text(_error!))
-          : Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Welcome ${_userData?['name'] ?? 'User'}!',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Role: ${_userData?['role'] ?? 'Unknown'}',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                final user = FirebaseAuth.instance.currentUser;
-                if (user != null && !user.emailVerified) {
-                  user.sendEmailVerification();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Verification email sent!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Resend Verification Email'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// class LoginScreen extends StatefulWidget {
+//   final bool isProvider;
+//
+//   const LoginScreen({super.key, required this.isProvider});
+//
+//   @override
+//   State<LoginScreen> createState() => _LoginScreenState();
+// }
+//
+// class _LoginScreenState extends State<LoginScreen> {
+//   final _formKey = GlobalKey<FormState>();
+//   final _phoneController = TextEditingController();
+//   final _otpController = TextEditingController();
+//   bool _isLoading = false;
+//   String? _errorMessage;
+//   String? _verificationId;
+//   bool _otpSent = false;
+//   int? _resendToken;
+//   final FirebaseAuth _auth = FirebaseAuth.instance;
+//
+//   @override
+//   void dispose() {
+//     _phoneController.dispose();
+//     _otpController.dispose();
+//     super.dispose();
+//   }
+//
+//   Future<void> _verifyPhoneNumber() async {
+//     if (!_formKey.currentState!.validate()) return;
+//
+//     setState(() {
+//       _isLoading = true;
+//       _errorMessage = null;
+//     });
+//
+//     try {
+//       await _auth.verifyPhoneNumber(
+//         phoneNumber: _phoneController.text.trim(),
+//         verificationCompleted: (PhoneAuthCredential credential) async {
+//           await _signInWithPhoneCredential(credential);
+//         },
+//         verificationFailed: (FirebaseAuthException e) {
+//           setState(() {
+//             _isLoading = false;
+//             _errorMessage = e.message ?? 'Verification failed';
+//           });
+//         },
+//         codeSent: (String verificationId, int? resendToken) {
+//           setState(() {
+//             _isLoading = false;
+//             _otpSent = true;
+//             _verificationId = verificationId;
+//             _resendToken = resendToken;
+//           });
+//         },
+//         codeAutoRetrievalTimeout: (String verificationId) {
+//           setState(() {
+//             _verificationId = verificationId;
+//           });
+//         },
+//         timeout: const Duration(seconds: 60),
+//         forceResendingToken: _resendToken,
+//       );
+//     } catch (e) {
+//       setState(() {
+//         _isLoading = false;
+//         _errorMessage = 'An unexpected error occurred';
+//       });
+//     }
+//   }
+//
+//   Future<void> _resendOTP() async {
+//     setState(() {
+//       _isLoading = true;
+//       _errorMessage = null;
+//     });
+//
+//     try {
+//       await _auth.verifyPhoneNumber(
+//         phoneNumber: _phoneController.text.trim(),
+//         verificationCompleted: (PhoneAuthCredential credential) async {
+//           await _signInWithPhoneCredential(credential);
+//         },
+//         verificationFailed: (FirebaseAuthException e) {
+//           setState(() {
+//             _isLoading = false;
+//             _errorMessage = e.message ?? 'Verification failed';
+//           });
+//         },
+//         codeSent: (String verificationId, int? resendToken) {
+//           setState(() {
+//             _isLoading = false;
+//             _verificationId = verificationId;
+//             _resendToken = resendToken;
+//           });
+//         },
+//         codeAutoRetrievalTimeout: (String verificationId) {
+//           setState(() {
+//             _verificationId = verificationId;
+//           });
+//         },
+//         timeout: const Duration(seconds: 60),
+//         forceResendingToken: _resendToken,
+//       );
+//     } catch (e) {
+//       setState(() {
+//         _isLoading = false;
+//         _errorMessage = 'An unexpected error occurred';
+//       });
+//     }
+//   }
+//
+//   Future<void> _verifyOTP() async {
+//     if (_verificationId == null || _otpController.text.isEmpty) {
+//       setState(() {
+//         _errorMessage = 'Please enter the OTP';
+//       });
+//       return;
+//     }
+//
+//     setState(() {
+//       _isLoading = true;
+//       _errorMessage = null;
+//     });
+//
+//     try {
+//       final credential = PhoneAuthProvider.credential(
+//         verificationId: _verificationId!,
+//         smsCode: _otpController.text.trim(),
+//       );
+//
+//       await _signInWithPhoneCredential(credential);
+//     } on FirebaseAuthException catch (e) {
+//       setState(() {
+//         _isLoading = false;
+//         _errorMessage = e.message ?? 'Verification failed';
+//       });
+//     } catch (e) {
+//       setState(() {
+//         _isLoading = false;
+//         _errorMessage = 'An unexpected error occurred';
+//       });
+//     }
+//   }
+//
+//   Future<void> _signInWithPhoneCredential(PhoneAuthCredential credential) async {
+//     try {
+//       final UserCredential userCredential =
+//       await _auth.signInWithCredential(credential);
+//
+//       // Check if user exists in database
+//       final database = FirebaseDatabase.instance.ref();
+//       final rolePath = widget.isProvider ? 'providers' : 'users';
+//       final snapshot = await database.child(rolePath).child(userCredential.user!.uid).get();
+//
+//       if (!snapshot.exists) {
+//         // New user - create account
+//         await _createNewUser(userCredential.user!);
+//       }
+//
+//       Navigator.pushReplacementNamed(context, '/home');
+//     } on FirebaseAuthException catch (e) {
+//       setState(() {
+//         _isLoading = false;
+//         _errorMessage = e.message ?? 'Authentication failed';
+//       });
+//     } catch (e) {
+//       setState(() {
+//         _isLoading = false;
+//         _errorMessage = 'An unexpected error occurred';
+//       });
+//     }
+//   }
+//
+//   Future<void> _createNewUser(User user) async {
+//     final database = FirebaseDatabase.instance.ref();
+//     final rolePath = widget.isProvider ? 'providers' : 'users';
+//
+//     final userData = {
+//       'uid': user.uid,
+//       'phone': user.phoneNumber,
+//       'role': widget.isProvider ? 'provider' : 'user',
+//       'createdAt': ServerValue.timestamp,
+//     };
+//
+//     await database.child(rolePath).child(user.uid).set(userData);
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+//
+//     return Scaffold(
+//       body: SingleChildScrollView(
+//         child: Container(
+//           padding: const EdgeInsets.all(30),
+//           height: MediaQuery.of(context).size.height,
+//           decoration: BoxDecoration(
+//             gradient: LinearGradient(
+//               begin: Alignment.topCenter,
+//               end: Alignment.bottomCenter,
+//               colors: isDarkMode
+//                   ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
+//                   : [const Color(0xFF5D69BE), const Color(0xFFC89FEB)],
+//             ),
+//           ),
+//           child: Column(
+//             mainAxisAlignment: MainAxisAlignment.center,
+//             children: [
+//               Hero(
+//                 tag: 'app-logo',
+//                 child: Image.asset(
+//                   'assets/images/logo.png',
+//                   width: 150,
+//                   height: 150,
+//                 ),
+//               ),
+//               const SizedBox(height: 20),
+//               Text(
+//                 widget.isProvider ? 'Service Provider Login' : 'User Login',
+//                 style: TextStyle(
+//                   fontSize: 24,
+//                   fontWeight: FontWeight.bold,
+//                   color: Colors.white,
+//                 ),
+//               ),
+//               const SizedBox(height: 10),
+//               Text(
+//                 widget.isProvider
+//                     ? 'Access your provider account'
+//                     : 'Login to book services',
+//                 style: TextStyle(
+//                   fontSize: 16,
+//                   color: Colors.white70,
+//                 ),
+//               ),
+//               const SizedBox(height: 30),
+//
+//               if (_errorMessage != null)
+//                 Padding(
+//                   padding: const EdgeInsets.only(bottom: 20),
+//                   child: Text(
+//                     _errorMessage!,
+//                     style: const TextStyle(color: Colors.red, fontSize: 16),
+//                   ),
+//                 ),
+//
+//               Form(
+//                 key: _formKey,
+//                 child: Column(
+//                   children: [
+//                     // Phone number field
+//                     _buildPhoneInputField(isDarkMode),
+//                     const SizedBox(height: 20),
+//
+//                     // OTP field (only visible after OTP is sent)
+//                     if (_otpSent) ...[
+//                       _buildOTPInputField(isDarkMode),
+//                       const SizedBox(height: 20),
+//                     ],
+//                   ],
+//                 ),
+//               ),
+//
+//               const SizedBox(height: 30),
+//
+//               // Send OTP / Verify OTP button
+//               SizedBox(
+//                 width: double.infinity,
+//                 child: ElevatedButton(
+//                   onPressed: _isLoading
+//                       ? null
+//                       : _otpSent ? _verifyOTP : _verifyPhoneNumber,
+//                   style: ElevatedButton.styleFrom(
+//                     foregroundColor: isDarkMode ? Colors.black : Colors.white,
+//                     backgroundColor: isDarkMode ? Colors.blue[200] : Colors.white,
+//                     padding: const EdgeInsets.symmetric(vertical: 16),
+//                     shape: RoundedRectangleBorder(
+//                       borderRadius: BorderRadius.circular(12),
+//                     ),
+//                     elevation: 5,
+//                   ),
+//                   child: _isLoading
+//                       ? const SizedBox(
+//                     width: 24,
+//                     height: 24,
+//                     child: CircularProgressIndicator(strokeWidth: 3),
+//                   )
+//                       : Text(
+//                     _otpSent ? 'Verify OTP' : 'Send OTP',
+//                     style: TextStyle(
+//                       fontSize: 18,
+//                       fontWeight: FontWeight.bold,
+//                       color: isDarkMode ? Colors.black : const Color(0xFF5D69BE),
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//
+//               // Resend OTP button
+//               if (_otpSent) ...[
+//                 const SizedBox(height: 15),
+//                 TextButton(
+//                   onPressed: _isLoading ? null : _resendOTP,
+//                   child: Text(
+//                     'Resend OTP',
+//                     style: TextStyle(
+//                       color: Colors.white,
+//                       fontWeight: FontWeight.w500,
+//                     ),
+//                   ),
+//                 ),
+//               ],
+//
+//               const SizedBox(height: 25),
+//               Row(
+//                 mainAxisAlignment: MainAxisAlignment.center,
+//                 children: [
+//                   Text(
+//                     "Don't have an account?",
+//                     style: TextStyle(color: Colors.white70),
+//                   ),
+//                   TextButton(
+//                     onPressed: () {
+//                       // Since we're using phone auth, signup is handled automatically
+//                       // Clear the form and reset state
+//                       setState(() {
+//                         _otpSent = false;
+//                         _phoneController.clear();
+//                         _otpController.clear();
+//                       });
+//                     },
+//                     child: Text(
+//                       'Sign In',
+//                       style: TextStyle(
+//                         color: Colors.white,
+//                         fontWeight: FontWeight.bold,
+//                       ),
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+//
+//   Widget _buildPhoneInputField(bool isDarkMode) {
+//     return Container(
+//       decoration: BoxDecoration(
+//         color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.2),
+//         borderRadius: BorderRadius.circular(12),
+//       ),
+//       child: TextFormField(
+//         controller: _phoneController,
+//         keyboardType: TextInputType.phone,
+//         style: const TextStyle(color: Colors.white),
+//         decoration: InputDecoration(
+//           border: InputBorder.none,
+//           prefixIcon: const Icon(Icons.phone, color: Colors.white70),
+//           hintText: 'Phone Number (e.g. +919876543210)',
+//           hintStyle: const TextStyle(color: Colors.white54),
+//         ),
+//         validator: (value) {
+//           if (value == null || value.isEmpty) {
+//             return 'Please enter your phone number';
+//           }
+//           if (!RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(value)) {
+//             return 'Please enter a valid phone number with country code';
+//           }
+//           return null;
+//         },
+//       ),
+//     );
+//   }
+//
+//   Widget _buildOTPInputField(bool isDarkMode) {
+//     return Container(
+//       decoration: BoxDecoration(
+//         color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.2),
+//         borderRadius: BorderRadius.circular(12),
+//       ),
+//       child: TextFormField(
+//         controller: _otpController,
+//         keyboardType: TextInputType.number,
+//         style: const TextStyle(color: Colors.white),
+//         decoration: InputDecoration(
+//           border: InputBorder.none,
+//           prefixIcon: const Icon(Icons.lock_outline, color: Colors.white70),
+//           hintText: 'Enter OTP',
+//           hintStyle: const TextStyle(color: Colors.white54),
+//         ),
+//         validator: (value) {
+//           if (value == null || value.isEmpty) {
+//             return 'Please enter the OTP';
+//           }
+//           if (value.length != 6) {
+//             return 'OTP must be 6 digits';
+//           }
+//           return null;
+//         },
+//       ),
+//     );
+//   }
+// }
