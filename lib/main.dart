@@ -988,36 +988,51 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:sewamitra/provider/providerHomeScreen.dart';
+import 'package:sewamitra/user/cart.dart';
+import 'package:sewamitra/user/userHomeScreen.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ServiceDataProvider(), // Updated to ServiceDataProvider
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'HomeServe',
+      title: 'SewaMitra',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFF5D69BE),
+        fontFamily: 'Poppins', // Add a custom font if desired
       ),
       routes: {
         '/role_selection': (context) => const RoleSelectionScreen(),
         '/auth': (context) => const AuthTabsScreen(),
         '/home_user': (context) => const HomeScreen(),
         '/home_provider': (context) => const ProviderHomeScreen(),
+        '/user_home': (context) => const UserHomeScreen(),
         '/auth_tabs': (context) => const AuthTabsScreen(),
+        '/cart': (context) => const CartScreen(),
+        ServiceProvidersScreen.routeName: (context) => const ServiceProvidersScreen(),
+        // Add other routes here
       },
       home: const SplashScreen(),
     );
   }
 }
-
 // class SplashScreen extends StatefulWidget {
 //   const SplashScreen({super.key});
 //   @override
@@ -1211,7 +1226,7 @@ class _SplashScreenState extends State<SplashScreen>
             children: [
               Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Image.asset('assets/images/logo.png', width: 130, height: 130),
+                  Image.asset('assets/images/logoicon.png', width: 130, height: 130),
                   const SizedBox(height: 16),
                   const Text('HomeServe', style: TextStyle(
                       fontSize: 30,
@@ -1266,7 +1281,7 @@ class RoleSelectionScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(30),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Image.asset('assets/images/logo.png', width: 120, height: 120),
+              Image.asset('assets/images/logoicon.png', width: 120, height: 120),
               const SizedBox(height: 24),
               const Text('Continue as',
                   style: TextStyle(
@@ -2044,109 +2059,72 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('User Home',
-            style: TextStyle(color: Colors.white, fontFamily: 'Poppins')),
-        backgroundColor: const Color(0xFF5D69BE),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF5D69BE), Color(0xFFC89FEB)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('Welcome, User!',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontFamily: 'Poppins')),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF5D69BE),
-                padding:
-                const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacementNamed(context, '/role_selection');
-              },
-              child: const Text('Sign out',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Poppins')),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class ProviderHomeScreen extends StatelessWidget {
-  const ProviderHomeScreen({super.key});
+class _HomeScreenState extends State<HomeScreen> {
+  bool isLoading = true;
+  String? userRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final database = FirebaseDatabase.instance.ref();
+      final userSnapshot = await database.child('users').child(user.uid).get();
+      final providerSnapshot = await database.child('providers').child(user.uid).get();
+
+      setState(() {
+        if (userSnapshot.exists) {
+          userRole = 'user';
+        } else if (providerSnapshot.exists) {
+          userRole = 'provider';
+        }
+        isLoading = false;
+      });
+
+      // After loading role, navigate accordingly
+      if (userRole == 'user') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) =>  UserHomeScreen()),
+        );
+      }
+      else if (userRole == 'provider') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ProviderHomeScreen()),
+        );
+      }
+      else {
+        // Role not found, show error or navigate to login
+      }
+    } else {
+      // User not logged in, maybe navigate to login
+      setState(() {
+        isLoading = false;
+      });
+      // Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Provider Home',
-            style: TextStyle(color: Colors.white, fontFamily: 'Poppins')),
-        backgroundColor: const Color(0xFF5D69BE),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF5D69BE), Color(0xFFC89FEB)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('Welcome, Provider!',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontFamily: 'Poppins')),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF5D69BE),
-                padding:
-                const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacementNamed(context, '/role_selection');
-              },
-              child: const Text('Sign out',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Poppins')),
-            ),
-          ]),
-        ),
+      body: Center(
+        child: isLoading
+            ? const CircularProgressIndicator()
+            : const Text('No user logged in'),
       ),
     );
   }
