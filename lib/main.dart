@@ -990,7 +990,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:sewamitra/provider/providerHomeScreen.dart';
+import 'package:sewamitra/provider/providerProfile.dart';
 import 'package:sewamitra/user/cart.dart';
+import 'package:sewamitra/user/profile.dart';
 import 'package:sewamitra/user/userHomeScreen.dart';
 
 
@@ -1026,6 +1028,22 @@ class MyApp extends StatelessWidget {
         '/user_home': (context) => const UserHomeScreen(),
         '/auth_tabs': (context) => const AuthTabsScreen(),
         '/cart': (context) => const CartScreen(),
+        '/profile': (context) {
+          // Get UID dynamically from FirebaseAuth
+          final user = FirebaseAuth.instance.currentUser;
+          if (user == null) {
+            // Redirect to login if not authenticated
+            return const AuthTabsScreen();
+          }
+          return ProfileScreen(userId: user.uid);
+        },
+        '/provider_profile': (context) {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user == null) return const AuthTabsScreen();
+          return ProviderProfileScreen(providerId: user.uid);
+        },
+        LocationScreen.routeName: (_) => LocationScreen(),
+
         ServiceProvidersScreen.routeName: (context) => const ServiceProvidersScreen(),
         // Add other routes here
       },
@@ -1033,6 +1051,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 // class SplashScreen extends StatefulWidget {
 //   const SplashScreen({super.key});
 //   @override

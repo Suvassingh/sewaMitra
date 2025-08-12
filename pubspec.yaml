@@ -46,6 +46,17 @@ dependencies:
   path: ^1.9.1
   flutter_image_compress: ^2.4.0
   permission_handler: ^12.0.1
+  flutter_map: ^8.2.1
+  latlong2: ^0.9.1
+  geolocator: ^14.0.2
+  geocoding: ^4.0.0
+  haversine_distance: ^1.2.1
+  cached_network_image: ^3.4.1
+  firebase_messaging: ^16.0.0
+  intl: ^0.20.2
+  overlay_support: ^2.1.0
+  badges: ^3.1.2
+
 
 dev_dependencies:
   flutter_test:
